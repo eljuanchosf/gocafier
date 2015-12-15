@@ -1,0 +1,38 @@
+{
+	"ImportPath": "github.com/eljuanchosf/gocafier",
+	"GoVersion": "go1.4",
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.8.6-13-g84b968c",
+			"Rev": "84b968cb9f82d727044973f8255489bbe15e9948"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/template",
+			"Rev": "b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/units",
+			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
+		},
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.0-119-g90fef38",
+			"Rev": "90fef389f98027ca55594edd7dbd6e7f3926fdad"
+		},
+		{
+			"ImportPath": "github.com/ddliu/go-httpclient",
+			"Comment": "v0.5.0-10-gcbb50d2",
+			"Rev": "cbb50d2bdb3253c84ee7d5d91c944c0e11143f8c"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/go-homedir",
+			"Rev": "d682a8f0cf139663a984ff12528da460ca963de9"
+		},
+		{
+			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
+			"Comment": "v2.0.12",
+			"Rev": "639879d6110b1b0409410c7b737ef0bb18325038"
+		}
+	]
+}

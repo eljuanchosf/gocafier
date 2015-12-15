@@ -3,10 +3,12 @@ package caching
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/eljuanchosf/gocafier/logging"
+	"github.com/kr/pretty"
+	"github.com/mitchellh/go-homedir"
 )
 
 const (
@@ -50,22 +52,38 @@ type OcaPackageDetail struct {
 	Success bool `json:"success"`
 }
 
-func Open(cacheFilename string) error {
+func createDatabase(cacheFilename string) error {
 	var err error
+	if cacheFilename == "" {
+		cacheFilename, err = homedir.Dir()
+		if err != nil {
+			panic(err)
+		}
+		cacheFilename += "/.gocafier.db"
+	}
+
+	logging.LogStd(fmt.Sprintf("Setting cache file to %s ", cacheFilename), true)
+
 	config := &bolt.Options{Timeout: 1 * time.Second}
-	appdb, err = bolt.Open(dbfile, 0600, config)
+	appdb, err = bolt.Open(cacheFilename, 0600, config)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	open = true
 	return nil
 }
 
-func Close() {
+func closeDatabase() {
 	open = false
 	appdb.Close()
 }
 
+//Close gracefully closes the database
+func Close() {
+	closeDatabase()
+}
+
+//Save records a package details to the caching database
 func (p *OcaPackageDetail) Save() error {
 	err := appdb.Update(func(tx *bolt.Tx) error {
 		packages := tx.Bucket([]byte(bucketName))
@@ -98,13 +116,28 @@ func decode(data []byte) (*OcaPackageDetail, error) {
 	return p, nil
 }
 
-//GetPackage retrieves a package from the database
-func GetPackage(id string) (*OcaPackageDetail, error) {
+//ListPackages gets a list of packages from the database
+func ListPackages() {
+	appdb.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket([]byte(bucketName)).Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			logging.LogStd(fmt.Sprintf("key=%s", k), true)
+			logging.LogStd(fmt.Sprintf("value=%s\n", pretty.Formatter(v)), true)
+		}
+		return nil
+	})
+}
+
+//GetPackage returns a single package by code
+func GetPackage(code string) (*OcaPackageDetail, error) {
+	if !open {
+		return nil, fmt.Errorf("db must be opened before saving")
+	}
 	var p *OcaPackageDetail
 	err := appdb.View(func(tx *bolt.Tx) error {
 		var err error
 		b := tx.Bucket([]byte(bucketName))
-		k := []byte(id)
+		k := []byte(code)
 		p, err = decode(b.Get(k))
 		if err != nil {
 			return err
@@ -112,31 +145,21 @@ func GetPackage(id string) (*OcaPackageDetail, error) {
 		return nil
 	})
 	if err != nil {
-		fmt.Printf("Could not get Package ID %s", id)
+		fmt.Printf("Could not get Package ID %s", code)
 		return nil, err
 	}
 	return p, nil
 }
 
-func ListPackages() {
-	appdb.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte(bucketName)).Cursor()
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			fmt.Printf("key=%s, value=%s\n", k, v)
-		}
-		return nil
-	})
-}
-
 // CreateBucket adds the application bucket to the caching database
-func CreateBucket() {
+func CreateBucket(cacheFilename string) {
+	createDatabase(cacheFilename)
 	appdb.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		return nil
-
 	})
 }
 
