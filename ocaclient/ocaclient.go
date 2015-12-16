@@ -13,7 +13,7 @@ const (
 
 // RequestData sends a GET request to the OCA web service using
 // the packageType and packageNumber provided by the user.
-func RequestData(packageType string, packageNumber string) (response caching.OcaPackageDetail, err error) {
+func RequestData(packageType string, packageNumber string) (response caching.OcaPackageDetail, success bool, err error) {
 	httpclient.Defaults(httpclient.Map{
 		httpclient.OPT_USERAGENT: "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36",
 		"Accept":                 "application/json, text/javascript, */*; q=0.01",
@@ -30,10 +30,16 @@ func RequestData(packageType string, packageNumber string) (response caching.Oca
 		"type":   packageType,
 		"number": packageNumber,
 	})
-
+	success = false
 	defer res.Body.Close()
 	decoder := json.NewDecoder(res.Body)
 	var ocaData caching.OcaPackageDetail
 	err = decoder.Decode(&ocaData)
-	return ocaData, err
+	if err != nil {
+		success = false
+		err = nil
+	} else {
+		success = true
+	}
+	return ocaData, success, err
 }

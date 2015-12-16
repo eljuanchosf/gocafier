@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/eljuanchosf/gocafier/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 	"github.com/eljuanchosf/gocafier/caching"
@@ -21,6 +25,7 @@ var (
 )
 
 var config settings.Config
+var ocaPackageTypes = []string{"paquetes", "cartas", "dni", "partidas"}
 
 const (
 	version = "1.0.0"
@@ -35,35 +40,86 @@ func main() {
 	settings.LoadConfig(*configPath)
 	caching.CreateBucket(*cachePath)
 
-	for _, packageNumber := range settings.Values.Packages {
-		log.LogPackage(packageNumber, "Verifying...")
-		pastData, err := caching.GetPackage(packageNumber)
-		if err != nil {
-			panic(err)
+	log.LogStd(fmt.Sprintf("Start polling each %s", *tickerTime), true)
+
+	//Control signal interruptions
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
+	go func() {
+		sig := <-sigc
+		switch sig {
+		case os.Interrupt:
+			log.LogStd("Interrupted by OS, exiting.", true)
+			caching.Close()
+			os.Exit(0)
+		case syscall.SIGTERM:
+			log.LogStd("Interrupted by SIGTERM, exiting.", true)
+			caching.Close()
+			os.Exit(0)
 		}
+	}()
 
-		packageType := "paquetes"
-		//pastData.Data[0].Log[0] = caching.DetailLog{}
-		currentData, err := ocaclient.RequestData(packageType, packageNumber)
-		if err != nil {
-			panic(err)
-		}
+	for {
+		for _, packageNumber := range settings.Values.Packages {
+			pastData, err := caching.GetPackage(packageNumber)
+			if err != nil {
+				panic(err)
+			}
 
-		currentData.Data[0].Type = packageType
+			currentData, packageType, packageFound := findPackage(packageNumber, pastData)
 
-		if pastData == nil {
-			log.LogPackage(packageNumber, "Package does not exist in cache, saving initial data.")
-			changeDetected(packageNumber, currentData, nil)
-		} else {
-			diff, diffFound := pastData.DiffWith(currentData)
-			if diffFound {
-				changeDetected(packageNumber, currentData, diff)
+			if packageFound {
+				currentData.Data[0].Type = packageType
+				if pastData == nil {
+					log.LogPackage(packageNumber, "Package does not exist in cache, saving initial data.")
+					changeDetected(packageNumber, currentData, nil)
+				} else {
+					diff, diffFound := pastData.DiffWith(currentData)
+					if diffFound {
+						changeDetected(packageNumber, currentData, diff)
+					} else {
+						log.LogPackage(packageNumber, "No change.")
+					}
+				}
 			} else {
-				log.LogPackage(packageNumber, "No change.")
+				log.LogPackage(packageNumber, "Not found in server")
 			}
 		}
+		time.Sleep(*tickerTime * time.Second)
 	}
-	caching.Close()
+}
+
+func findPackage(packageNumber string, pastData *caching.OcaPackageDetail) (details caching.OcaPackageDetail, packageType string, found bool) {
+	var err error
+	var success bool
+	found = false
+	if pastData == nil {
+		for _, packageType = range ocaPackageTypes {
+			log.LogPackage(packageNumber, fmt.Sprintf("Checking in type '%s'", packageType))
+			details, success, err = ocaclient.RequestData(packageType, packageNumber)
+			if err != nil {
+				panic(err)
+			}
+			if success {
+				found = true
+				break
+			}
+		}
+	} else {
+		packageType = pastData.Data[0].Type
+		log.LogPackage(packageNumber, fmt.Sprintf("Found in type '%s'", packageType))
+		details, success, err = ocaclient.RequestData(packageType, packageNumber)
+		if err != nil {
+			panic(err)
+		}
+		found = true
+	}
+	return details, packageType, found
 }
 
 func changeDetected(packageNumber string, currentData caching.OcaPackageDetail, diff []caching.DetailLog) {
@@ -73,5 +129,5 @@ func changeDetected(packageNumber string, currentData caching.OcaPackageDetail, 
 	if err != nil {
 		panic(err)
 	}
-	//currentData.Save()
+	currentData.Save()
 }
