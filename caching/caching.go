@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
-	"github.com/eljuanchosf/gocafier/logging"
+	log "github.com/eljuanchosf/gocafier/logging"
 	"github.com/kr/pretty"
 	"github.com/mitchellh/go-homedir"
 )
@@ -66,7 +66,7 @@ func createDatabase(cacheFilename string) error {
 		cacheFilename += "/.gocafier.db"
 	}
 
-	logging.LogStd(fmt.Sprintf("Setting cache file to %s ", cacheFilename), true)
+	log.LogStd(fmt.Sprintf("Setting cache file to %s ", cacheFilename), true)
 
 	config := &bolt.Options{Timeout: 1 * time.Second}
 	appdb, err = bolt.Open(cacheFilename, 0600, config)
@@ -125,8 +125,8 @@ func ListPackages() {
 	appdb.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte(bucketName)).Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			logging.LogStd(fmt.Sprintf("key=%s", k), true)
-			logging.LogStd(fmt.Sprintf("value=%s\n", pretty.Formatter(v)), true)
+			log.LogStd(fmt.Sprintf("key=%s", k), true)
+			log.LogStd(fmt.Sprintf("value=%s\n", pretty.Formatter(v)), true)
 		}
 		return nil
 	})

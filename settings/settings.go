@@ -9,6 +9,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var Values Config
+
 //Config represents the config structure for the package
 type Config struct {
 	Email struct {
@@ -26,11 +28,9 @@ type Config struct {
 }
 
 //LoadConfig reads the specified config file
-func LoadConfig(filename string) Config {
-	var config Config
-
+func LoadConfig(filename string) {
 	if filename == "." {
-		filename = "../config.yml"
+		filename = "config.yml"
 	}
 
 	logging.LogStd(fmt.Sprintf("Loading config from %s", filename), true)
@@ -39,9 +39,8 @@ func LoadConfig(filename string) Config {
 	if err != nil {
 		panic(err)
 	}
-	err = yaml.Unmarshal(source, &config)
+	err = yaml.Unmarshal(source, &Values)
 	if err != nil {
 		panic(err)
 	}
-	return config
 }

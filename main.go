@@ -3,14 +3,12 @@ package main
 import (
 	"fmt"
 
-	"gopkg.in/gomail.v2"
-
 	"github.com/eljuanchosf/gocafier/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 	"github.com/eljuanchosf/gocafier/caching"
-	"github.com/eljuanchosf/gocafier/logging"
+	log "github.com/eljuanchosf/gocafier/logging"
+	"github.com/eljuanchosf/gocafier/notifications"
 	"github.com/eljuanchosf/gocafier/ocaclient"
 	"github.com/eljuanchosf/gocafier/settings"
-	"github.com/kr/pretty"
 )
 
 var (
@@ -29,63 +27,51 @@ const (
 )
 
 func main() {
-	logging.LogStd(fmt.Sprintf("Starting gocafier %s ", version), true)
-	logging.SetupLogging(*debug)
+	log.LogStd(fmt.Sprintf("Starting gocafier %s ", version), true)
+	log.SetupLogging(*debug)
 
 	kingpin.Version(version)
 	kingpin.Parse()
-	config = settings.LoadConfig("config.yml")
+	settings.LoadConfig(*configPath)
 	caching.CreateBucket(*cachePath)
 
-	packageType := "paquetes"
-	packageNumber := "3867500000015544038"
-	logging.LogPackage(packageNumber, "Verifying...")
-	pastData, err := caching.GetPackage(packageNumber)
-	if err != nil {
-		panic(err)
-	}
-
-	//pastData.Data[0].Log[0] = caching.DetailLog{}
-	currentData, err := ocaclient.RequestData(packageType, packageNumber)
-	if err != nil {
-		panic(err)
-	}
-
-	currentData.Data[0].Type = packageType
-
-	if pastData == nil {
-		logging.LogPackage(packageNumber, "Package does not exists in cache, saving initial data.")
-		//currentData.Save()
-		logging.LogPackage(packageNumber, "Sending notification...")
-		err = SendNotification(currentData)
+	for _, packageNumber := range settings.Values.Packages {
+		log.LogPackage(packageNumber, "Verifying...")
+		pastData, err := caching.GetPackage(packageNumber)
 		if err != nil {
 			panic(err)
 		}
-	} else {
-		diff, diffFound := pastData.DiffWith(currentData)
-		if diffFound {
-			logging.LogPackage(packageNumber, "Change detected. Sending notification.")
-			fmt.Printf("%# v", pretty.Formatter(diff))
-			//currentData.Save()
+
+		packageType := "paquetes"
+		//pastData.Data[0].Log[0] = caching.DetailLog{}
+		currentData, err := ocaclient.RequestData(packageType, packageNumber)
+		if err != nil {
+			panic(err)
+		}
+
+		currentData.Data[0].Type = packageType
+
+		if pastData == nil {
+			log.LogPackage(packageNumber, "Package does not exist in cache, saving initial data.")
+			changeDetected(packageNumber, currentData, nil)
 		} else {
-			logging.LogPackage(packageNumber, "No change.")
+			diff, diffFound := pastData.DiffWith(currentData)
+			if diffFound {
+				changeDetected(packageNumber, currentData, diff)
+			} else {
+				log.LogPackage(packageNumber, "No change.")
+			}
 		}
 	}
 	caching.Close()
 }
 
-func SendNotification(currentData caching.OcaPackageDetail) error {
-	packageCode := currentData.Data[0].Code
-	m := gomail.NewMessage()
-	m.SetHeader("From", config.Email.From)
-	m.SetHeader("To", config.Email.To)
-	m.SetHeader("Subject", fmt.Sprintf(config.Email.Subject, packageCode))
-	m.SetBody("text/html", fmt.Sprintf(config.Email.Body, packageCode))
-
-	d := gomail.NewPlainDialer(config.SMTP.Server, config.SMTP.Port, *smtpUser, *smtpPassword)
-	if err := d.DialAndSend(m); err != nil {
-		return err
+func changeDetected(packageNumber string, currentData caching.OcaPackageDetail, diff []caching.DetailLog) {
+	var err error
+	log.LogPackage(packageNumber, "Change detected.")
+	err = notifications.Send(currentData, diff, *smtpUser, *smtpPassword)
+	if err != nil {
+		panic(err)
 	}
-	logging.LogPackage(packageCode, "Notification sent")
-	return nil
+	//currentData.Save()
 }

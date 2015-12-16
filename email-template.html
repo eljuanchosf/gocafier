@@ -1,0 +1,14 @@
+<h2>Envío {{.PackageNumber}}</h2>
+Hay un update del envío de referencia.
+<h4>Origen del envío</h4>
+<p>
+  {{.From}}
+</p>
+<h4>Ultimo(s) movimiento(s)</h4>
+<p>
+  <ul>
+    {{ range $movement := .Movements }}
+      <li>{{ $movement.Date }}: <strong>{{ $movement.Description }}</strong></li>
+    {{ end }}
+  </ul>
+</p>
