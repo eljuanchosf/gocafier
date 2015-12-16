@@ -52,10 +52,10 @@ func Send(currentData caching.OcaPackageDetail, diff []caching.DetailLog, smtpUs
 	m.SetHeader("Subject", fmt.Sprintf(settings.Values.Email.Subject, packageNumber))
 	m.SetBody("text/html", loadBodyTemplate(packageNumber, currentData, diff))
 
-	/*d := gomail.NewPlainDialer(settings.Values.SMTP.Server, settings.Values.SMTP.Port, smtpUser, smtpPassword)
+	d := gomail.NewPlainDialer(settings.Values.SMTP.Server, settings.Values.SMTP.Port, smtpUser, smtpPassword)
 	if err := d.DialAndSend(m); err != nil {
 		return err
-	}*/
+	}
 
 	log.LogPackage(packageNumber, "Notification sent")
 	return nil

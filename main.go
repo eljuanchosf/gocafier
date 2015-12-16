@@ -90,7 +90,7 @@ func main() {
 				log.LogPackage(packageNumber, "Not found in server")
 			}
 		}
-		time.Sleep(*tickerTime * time.Second)
+		time.Sleep(*tickerTime)
 	}
 }
 

@@ -26,6 +26,15 @@
 			"Rev": "cbb50d2bdb3253c84ee7d5d91c944c0e11143f8c"
 		},
 		{
+			"ImportPath": "github.com/kr/pretty",
+			"Comment": "go.weekly.2011-12-22-27-ge6ac2fc",
+			"Rev": "e6ac2fc51e89a3249e82157fa0bb7a18ef9dd5bb"
+		},
+		{
+			"ImportPath": "github.com/kr/text",
+			"Rev": "bb797dc4fb8320488f47bf11de07a733d7233e1f"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/go-homedir",
 			"Rev": "d682a8f0cf139663a984ff12528da460ca963de9"
 		},
@@ -33,6 +42,19 @@
 			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
 			"Comment": "v2.0.12",
 			"Rev": "639879d6110b1b0409410c7b737ef0bb18325038"
+		},
+		{
+			"ImportPath": "gopkg.in/alexcesaro/quotedprintable.v3",
+			"Rev": "2caba252f4dc53eaf6b553000885530023f54623"
+		},
+		{
+			"ImportPath": "gopkg.in/gomail.v2",
+			"Comment": "2.0.0-8-gfbb71dd",
+			"Rev": "fbb71ddc63acd07dd0ed49ababdf02c551e2539a"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "53feefa2559fb8dfa8d81baad31be332c97d6c77"
 		}
 	]
 }
