@@ -1,0 +1,14 @@
+---
+smtp:
+  server: smtp.gmail.com
+  port:   587
+email:
+  from: no-reply@ocafier.com
+  to:   destination@address.com
+  cc:
+  subject: "Paquete OCA %s"
+  body:
+    "Tenemos un update del paquete número <b>%s</b>.</br>El último movimiento es:</br>"
+packages:
+  - 123123123
+  - 123123124

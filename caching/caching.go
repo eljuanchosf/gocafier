@@ -27,6 +27,7 @@ type DetailLog struct {
 // OcaPackageDetail represents the response from the OCA web service
 type OcaPackageDetail struct {
 	Data []struct {
+		Type   string `json:"type"`
 		Code   string `json:"code"`
 		Detail []struct {
 			Apellido           string   `json:"Apellido"`
@@ -139,9 +140,13 @@ func GetPackage(code string) (*OcaPackageDetail, error) {
 	var p *OcaPackageDetail
 	err := appdb.View(func(tx *bolt.Tx) error {
 		var err error
-		b := tx.Bucket([]byte(bucketName))
-		k := []byte(code)
-		p, err = decode(b.Get(k))
+		bucket := tx.Bucket([]byte(bucketName))
+		key := []byte(code)
+		value := bucket.Get(key)
+		if value == nil {
+			return nil
+		}
+		p, err = decode(value)
 		if err != nil {
 			return err
 		}
@@ -166,6 +171,7 @@ func CreateBucket(cacheFilename string) {
 	})
 }
 
+//DiffWith compares the structure of the package log with another package
 func (p *OcaPackageDetail) DiffWith(packageDetails OcaPackageDetail) ([]DetailLog, bool) {
 	var diff []DetailLog
 	foundFlag := false
