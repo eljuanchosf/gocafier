@@ -29,6 +29,10 @@ func SetupLogging(debug bool) {
 	debugFlag = debug
 }
 
+func LogPackage(packageNumber string, message string) {
+	LogStd(fmt.Sprintf("P:%s - %s", packageNumber, message), true)
+}
+
 func LogStd(message string, force bool) {
 	Log(message, force, false, nil)
 }

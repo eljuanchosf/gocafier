@@ -18,6 +18,12 @@ const (
 var appdb *bolt.DB
 var open bool
 
+//DetailLog represents a log of package movements
+type DetailLog struct {
+	Date        string `json:"date"`
+	Description string `json:"description"`
+}
+
 // OcaPackageDetail represents the response from the OCA web service
 type OcaPackageDetail struct {
 	Data []struct {
@@ -44,10 +50,7 @@ type OcaPackageDetail struct {
 			Provincia          string   `json:"Provincia"`
 			Remito             string   `json:"Remito"`
 		} `json:"detail"`
-		Log []struct {
-			Date        string `json:"date"`
-			Description string `json:"description"`
-		} `json:"log"`
+		Log []DetailLog `json:"log"`
 	} `json:"data"`
 	Success bool `json:"success"`
 }
@@ -161,6 +164,38 @@ func CreateBucket(cacheFilename string) {
 		}
 		return nil
 	})
+}
+
+func (p *OcaPackageDetail) DiffWith(packageDetails OcaPackageDetail) ([]DetailLog, bool) {
+	var diff []DetailLog
+	foundFlag := false
+
+	firstLog := p.Data[0].Log
+	anotherLog := packageDetails.Data[0].Log
+
+	// Loop two times, first to find slice1 strings not in slice2,
+	// second loop to find slice2 strings not in slice1
+	for i := 0; i < 2; i++ {
+		for _, s1 := range firstLog {
+			found := false
+			for _, s2 := range anotherLog {
+				if s1 == s2 {
+					found = true
+					break
+				}
+			}
+			// String not found. We add it to return slice
+			if !found {
+				diff = append(diff, s1)
+				foundFlag = true
+			}
+		}
+		// Swap the slices, only if it was the first loop
+		if i == 0 {
+			firstLog, anotherLog = anotherLog, firstLog
+		}
+	}
+	return diff, foundFlag
 }
 
 // SetAppDb sets the database for caching

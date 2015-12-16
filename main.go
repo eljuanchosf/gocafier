@@ -30,17 +30,29 @@ func main() {
 	caching.CreateBucket(*cachePath)
 
 	packageType := "paquetes"
-	packageNumber := "3867500000015544782"
+	packageNumber := "3867500000015544038"
 
-	ocaData, err := ocaclient.RequestData(packageType, packageNumber)
+	logging.LogPackage(packageNumber, "Verifying...")
+	pastData, err := caching.GetPackage(packageNumber)
 	if err != nil {
 		panic(err)
 	}
-	ocaData.Save()
-	savedPackage, err := caching.GetPackage(packageNumber)
+
+	//pastData.Data[0].Log[0] = caching.DetailLog{}
+
+	currentData, err := ocaclient.RequestData(packageType, packageNumber)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%# v", pretty.Formatter(savedPackage))
+
+	diff, diffFound := pastData.DiffWith(currentData)
+
+	if diffFound {
+		logging.LogPackage(packageNumber, "Change detected. Sending notification.")
+		fmt.Printf("%# v", pretty.Formatter(diff))
+		currentData.Save()
+	} else {
+		logging.LogPackage(packageNumber, "No change.")
+	}
 	caching.Close()
 }
